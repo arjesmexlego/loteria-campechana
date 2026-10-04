@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Cartillas - Lotería Campechana</title>
+    <style>
+        /* --- VARIABLES GLOBALES Y MEDIDAS CUADRADAS EN CM --- */
+        :root {
+            --primary-color: #c62828;
+            --accent-color: #ffc107;
+            --bg-color: #f4f6f8;
+            --card-border: #1a1a1a;
+            
+            /* Medida del lado para formato cuadrado */
+            --cartilla-lado: 13.5cm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: #2c3e50;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-size: 1.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        p.subtitulo {
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .nota-impresion {
+            background-color: #e3f2fd;
+            border: 1px solid #90caf9;
+            color: #0d47a1;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            max-width: 650px;
+            margin: 0 auto 20px auto;
+        }
+
+        /* --- PANEL DE CONFIGURACIÓN --- */
+        .panel-control {
+            background: #ffffff;
+            padding: 18px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 25px;
+            max-width: 95%;
+            border: 1px solid #e9ecef;
+        }
+
+        .grupo-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .grupo-control input[type="number"] {
+            width: 75px;
+            padding: 6px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        select, button {
+            font-family: inherit;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            outline: none;
+            background-color: #fff;
+        }
+
+        .btn-opcion {
+            background: #f1f3f5;
+            border: 1px solid #ced4da;
+            cursor: pointer;
+            font-weight: 600;
+            color: #495057;
+            transition: all 0.2s ease;
+        }
+
+        .btn-opcion.activo {
+            background: var(--accent-color);
+            border-color: #e0a800;
+            color: #000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* --- CONTENEDOR PRINCIPAL --- */
+        #contenedor-cartillas {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 0 auto;
+        }
+
+        /* --- CARTILLA Y GRIDS ESTRICTAMENTE CUADRADOS --- */
+        .cartilla-box {
+            background: white;
+            border: 3px solid var(--card-border);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            width: var(--cartilla-lado);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            flex-shrink: 0;
+        }
+
+        .cartilla-header {
+            background: #1a1a1a;
+            padding: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .select-centro-indep {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 180px;
+            text-align: center;
+        }
+
+        /* GRIDS DINÁMICOS */
+        .grid-5x5 {
+            width: 100%;
+            height: var(--cartilla-lado);
+            aspect-ratio: 1 / 1;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 1px;
+            background-color: #000;
+            box-sizing: border-box;
+        }
+
+        .grid-3x3 {
+            width: 100%;
+            height: var(--cartilla-lado);
+            aspect-ratio: 1 / 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 1px;
+            background-color: #000;
+            box-sizing: border-box;
+        }
+
+        /* --- PLANILLA 90 CARTAS (9x10) --- */
+        .planilla-box {
+            background: white;
+            border: 3px solid #000;
+            width: 100%;
+            max-width: 850px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .grid-9x10 {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 1px;
+            background-color: #000;
+            aspect-ratio: 9 / 10;
+        }
+
+        /* --- CASILLAS CUADRADAS --- */
+        .celda {
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 2px;
+            box-sizing: border-box;
+            user-select: none;
+            aspect-ratio: 1 / 1;
+        }
+
+        .celda img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            border-radius: 2px;
+            image-rendering: -webkit-optimize-contrast;
+            display: block;
+        }
+
+        .celda-centro-especial {
+            background: #fffde7 !important;
+            box-shadow: inset 0 0 0 2px #ffa000 !important;
+        }
+
+        .celda-fallback {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background: #f8f9fa;
+            color: #495057;
+            border: 1px dashed #dee2e6;
+            border-radius: 3px;
+            box-sizing: border-box;
+            padding: 2px;
+        }
+
+        .celda-fallback .num { font-size: 0.9rem; font-weight: 800; color: var(--primary-color); }
+        .celda-fallback .nombre { font-size: 0.55rem; text-align: center; line-height: 1.1; margin-top: 2px; font-weight: 600; }
+
+        /* --- BOTONES DE ACCIÓN --- */
+        .acciones {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn-accion {
+            padding: 12px 26px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: transform 0.15s, opacity 0.2s;
+        }
+
+        .btn-accion:active { transform: scale(0.96); }
+        .btn-imprimir { background-color: #2e7d32; }
+
+        /* --- REGLAS DE IMPRESIÓN FÍSICA ESTRICTA (PDF) --- */
+        @media print {
+            @page { size: letter portrait; margin: 1cm; }
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .panel-control, h1, .subtitulo, .acciones, .cartilla-header, .nota-impresion { display: none !important; }
+            #contenedor-cartillas {
+                display: flex !important; flex-wrap: wrap !important;
+                justify-content: flex-start !important; align-items: flex-start !important;
+                align-content: flex-start !important; gap: 0.5cm !important;
+                width: 100% !important; padding: 0 !important; margin: 0 !important;
+            }
+            .cartilla-box {
+                box-shadow: none !important; border: 2px solid #000 !important;
+                width: var(--cartilla-lado) !important; height: var(--cartilla-lado) !important;
+                min-width: var(--cartilla-lado) !important; max-width: var(--cartilla-lado) !important;
+                box-sizing: border-box !important; page-break-inside: avoid !important;
+                break-inside: avoid !important; flex-shrink: 0 !important; margin: 0 !important;
+            }
+            .grid-5x5, .grid-3x3 { width: 100% !important; height: 100% !important; box-sizing: border-box !important; }
+            body[data-cant="90"] .planilla-box {
+                width: 19cm !important; max-width: 19cm !important;
+                box-shadow: none !important; page-break-inside: avoid !important; break-inside: avoid !important;
+            }
+        }
+    </style>
+</head>
+<body data-cant="4">
+
+    <h1>Lotería Campechana</h1>
+    <p class="subtitulo">Generador de Cartillas (5x5 y 3x3) - Ajuste Estricto PDF</p>
+
+    <div class="nota-impresion">
+        💡 <b>Tip para imprimir:</b> En la ventana de impresión, asegúrate de que la opción <b>Escala</b> esté en <b>"Predeterminado"</b> o <b>"100%"</b> para garantizar las medidas exactas en centímetros.
+    </div>
+
+    <!-- PANEL DE CONTROL -->
+    <div class="panel-control">
+        
+        <div class="grupo-control">
+            <label>Formato:</label>
+            <select id="select-formato" onchange="cambiarFormato()">
+                <option value="5">5x5 Tradicional</option>
+                <option value="3">3x3 Rápido</option>
+            </select>
+        </div>
+
+        <div class="grupo-control" id="cont-medidas">
+            <label>📐 Lado (cm):</label>
+            <input type="number" id="input-lado" value="13.5" min="5" max="19" step="0.5" onchange="actualizarMedidas()">
+        </div>
+
+        <div class="grupo-control">
+            <label>Cartillas a generar:</label>
+            <input type="number" id="input-cantidad" value="4" min="1" max="100">
+            <button class="btn-opcion" id="btn-azar" onclick="generar(false)">🎲 Al Azar</button>
+            <button class="btn-opcion activo" id="btn-completo" onclick="generar(true)">🧩 Juego Completo</button>
+            <button class="btn-opcion" onclick="renderPlanillaBtn()">📋 Planilla 90</button>
+        </div>
+
+    </div>
+
+    <!-- ÁREA DE RENDERIZADO -->
+    <div id="contenedor-cartillas"></div>
+
+    <!-- BOTONES DE ACCIÓN -->
+    <div class="acciones">
+        <button class="btn-accion btn-imprimir" onclick="window.print()">🖨️ Imprimir PDF</button>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN
+        const CARPETA_FICHAS = 'fichas';
+        const EXTENSION_PRINCIPAL = '.webp';
+        const EXTENSION_RESPALDO = '.png';
+
+        const MAZO_LOTERIA = Array.from({ length: 90 }, (_, i) => ({
+            id: i + 1, nombre: `Ficha ${i + 1}`, img: `${CARPETA_FICHAS}/${i + 1}${EXTENSION_PRINCIPAL}`
+        }));
+
+        let cartillasGuardadas = [];
+        let currentFormato = 5;       // 5 para 5x5, 3 para 3x3
+        let currentCentroIdx = 12;    // Índice central (12 para 5x5, 4 para 3x3)
+        let slotsPorCartilla = 25;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            actualizarMedidas();
+            generar(true); // Generar modo completo al inicio
+        });
+
+        function actualizarMedidas() {
+            const lado = document.getElementById('input-lado').value;
+            document.documentElement.style.setProperty('--cartilla-lado', `${lado}cm`);
+        }
+
+        function cambiarFormato() {
+            currentFormato = parseInt(document.getElementById('select-formato').value);
+            slotsPorCartilla = currentFormato * currentFormato;
+            currentCentroIdx = Math.floor(slotsPorCartilla / 2);
+            
+            // Sugerir medidas visuales según el formato
+            const inputLado = document.getElementById('input-lado');
+            if (currentFormato === 5) inputLado.value = 13.5;
+            if (currentFormato === 3) inputLado.value = 9.0;
+            
+            actualizarMedidas();
+            generar(true); // Forzar regeneración completa con el nuevo formato
+        }
+
+        // ALGORITMO BARAJADO
+        function barajar(array) {
+            const copia = [...array];
+            for (let i = copia.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copia[i], copia[j]] = [copia[j], copia[i]];
+            }
+            return copia;
+        }
+
+        // CONTROL DE BOTONES ACTIVOS
+        function setBotonActivo(idBoton) {
+            document.querySelectorAll('.panel-control .btn-opcion').forEach(b => b.classList.remove('activo'));
+            if(idBoton) document.getElementById(idBoton).classList.add('activo');
+        }
+
+        // GENERACIÓN PRINCIPAL
+        function generar(esCompleto) {
+            const contenedor = document.getElementById('contenedor-cartillas');
+            contenedor.innerHTML = '';
+            cartillasGuardadas = [];
+            document.body.setAttribute('data-cant', 'normal');
+
+            if (esCompleto) {
+                setBotonActivo('btn-completo');
+                // Asignar matemáticas perfectas según formato
+                let cantidadIdeal = currentFormato === 5 ? 4 : 10;
+                document.getElementById('input-cantidad').value = cantidadIdeal;
+                generarModoJuegoCompleto(contenedor, cantidadIdeal);
+            } else {
+                setBotonActivo('btn-azar');
+                let cant = parseInt(document.getElementById('input-cantidad').value) || 1;
+                for (let i = 0; i < cant; i++) {
+                    let listaAleatoria = barajar(MAZO_LOTERIA).slice(0, slotsPorCartilla);
+                    cartillasGuardadas.push(listaAleatoria);
+                    renderCartilla(contenedor, listaAleatoria, i);
+                }
+            }
+        }
+
+        function renderPlanillaBtn() {
+            setBotonActivo(null);
+            document.body.setAttribute('data-cant', '90');
+            const contenedor = document.getElementById('contenedor-cartillas');
+            contenedor.innerHTML = '';
+            
+            const box = document.createElement('div');
+            box.className = 'planilla-box';
+            const grid = document.createElement('div');
+            grid.className = 'grid-9x10';
+
+            MAZO_LOTERIA.forEach(carta => grid.appendChild(crearCelda(carta, false)));
+            
+            box.appendChild(grid);
+            contenedor.appendChild(box);
+        }
+
+        // MATEMÁTICAS PROFUNDAS MODO JUEGO COMPLETO
+        function generarModoJuegoCompleto(contenedor, totalCartillas) {
+            let mazo90 = barajar(MAZO_LOTERIA);
+            let boards = [];
+
+            if (currentFormato === 3) {
+                // Matemática perfecta 3x3: 10 cartillas * 9 slots = 90 exactos. Cero repeticiones.
+                for (let i = 0; i < 10; i++) {
+                    boards.push(mazo90.slice(i * 9, (i + 1) * 9));
+                }
+            } 
+            else if (currentFormato === 5) {
+                // Matemática 5x5: 4 cartillas * 25 slots = 100 espacios. (10 repetidas)
+                let repetidas = mazo90.slice(0, 10);
+                let unicas = mazo90.slice(10, 90); 
+                boards = [[], [], [], []];
+
+                // Distribuir dobles para evitar solapamientos internos
+                repetidas.forEach(figura => {
+                    let indices = barajar([0, 1, 2, 3]).slice(0, 2);
+                    boards[indices[0]].push(figura);
+                    boards[indices[1]].push(figura);
+                });
+
+                // Rellenar resto
+                let uIndex = 0;
+                for (let i = 0; i < 4; i++) {
+                    let needed = 25 - boards[i].length;
+                    for (let k = 0; k < needed; k++) {
+                        boards[i].push(unicas[uIndex]);
+                        uIndex++;
+                    }
+                    boards[i] = barajar(boards[i]); // Mezclar internamente
+                }
+
+                // Asegurar que la posición central (idx 12) sea única entre las 4 tablas
+                let centrosUsados = new Set();
+                for (let i = 0; i < 4; i++) {
+                    let idCentro = boards[i][currentCentroIdx].id;
+                    if (centrosUsados.has(idCentro)) {
+                        for (let j = 0; j < 25; j++) {
+                            if (j !== currentCentroIdx && !centrosUsados.has(boards[i][j].id)) {
+                                let temp = boards[i][currentCentroIdx];
+                                boards[i][currentCentroIdx] = boards[i][j];
+                                boards[i][j] = temp;
+                                break;
+                            }
+                        }
+                    }
+                    centrosUsados.add(boards[i][currentCentroIdx].id);
+                }
+            }
+
+            cartillasGuardadas = boards;
+            for (let i = 0; i < boards.length; i++) {
+                renderCartilla(contenedor, boards[i], i);
+            }
+        }
+
+        // SISTEMA DE INTERCAMBIO UNIVERSAL (SWAP)
+        function cambiarCentroIndependiente(indexCartilla, nuevoVal) {
+            let currentBoard = cartillasGuardadas[indexCartilla];
+            let currentCenter = currentBoard[currentCentroIdx];
+            
+            let centrosActuales = cartillasGuardadas.map((b, idx) => ({ 
+                id: b[currentCentroIdx].id, tabla: idx, esComodin: b[currentCentroIdx].esComodin 
+            }));
+
+            if (nuevoVal === 'comodin') {
+                currentBoard[currentCentroIdx] = { id: '⭐', nombre: 'COMODÍN', esComodin: true };
+            } 
+            else if (nuevoVal === 'aleatorio') {
+                let swapIdx = Math.floor(Math.random() * slotsPorCartilla);
+                while (swapIdx === currentCentroIdx) swapIdx = Math.floor(Math.random() * slotsPorCartilla);
+                
+                let temp = currentBoard[currentCentroIdx];
+                currentBoard[currentCentroIdx] = currentBoard[swapIdx];
+                currentBoard[swapIdx] = temp;
+            } 
+            else {
+                const targetId = parseInt(nuevoVal, 10);
+                
+                // Bloqueo estricto para no desestabilizar otras cartillas
+                const esCentroEnOtra = centrosActuales.some(c => c.id === targetId && !c.esComodin && c.tabla !== indexCartilla);
+                if (esCentroEnOtra) {
+                    alert("Esta figura ya es el centro en otra cartilla. Por favor, elige una distinta para mantener las reglas.");
+                } else {
+                    const targetCarta = MAZO_LOTERIA.find(c => c.id === targetId);
+                    let swapRealizado = false;
+
+                    // Busca la carta en cualquier cartilla y hace el trueque para preservar la matemática
+                    for (let b = 0; b < cartillasGuardadas.length; b++) {
+                        for (let c = 0; c < slotsPorCartilla; c++) {
+                            if (cartillasGuardadas[b][c].id === targetId && !swapRealizado) {
+                                cartillasGuardadas[b][c] = currentCenter; 
+                                currentBoard[currentCentroIdx] = targetCarta;
+                                swapRealizado = true;
+                                break;
+                            }
+                        }
+                        if (swapRealizado) break;
+                    }
+                    
+                    if (!swapRealizado) currentBoard[currentCentroIdx] = targetCarta;
+                }
+            }
+
+            // Renderizar todo de nuevo para reflejar el swap en toda la pantalla
+            const contenedor = document.getElementById('contenedor-cartillas');
+            contenedor.innerHTML = '';
+            cartillasGuardadas.forEach((cartilla, i) => renderCartilla(contenedor, cartilla, i));
+        }
+
+        function renderCartilla(contenedor, listaCartas, indexCartilla) {
+            const box = document.createElement('div');
+            box.className = 'cartilla-box';
+
+            const header = document.createElement('div');
+            header.className = 'cartilla-header';
+
+            const selectCentro = document.createElement('select');
+            selectCentro.className = 'select-centro-indep';
+            selectCentro.onchange = (e) => cambiarCentroIndependiente(indexCartilla, e.target.value);
+
+            let optDefault = document.createElement('option');
+            optDefault.value = 'aleatorio';
+            optDefault.textContent = '📍 Centro: Auto';
+            selectCentro.appendChild(optDefault);
+
+            let optComodin = document.createElement('option');
+            optComodin.value = 'comodin';
+            optComodin.textContent = '⭐ Comodín';
+            if (listaCartas[currentCentroIdx].esComodin) optComodin.selected = true;
+            selectCentro.appendChild(optComodin);
+
+            let otrosCentros = cartillasGuardadas
+                .map((b, i) => (i !== indexCartilla && !b[currentCentroIdx].esComodin) ? b[currentCentroIdx].id : null)
+                .filter(id => id !== null);
+
+            MAZO_LOTERIA.forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.id}. ${c.nombre}`;
+                
+                if (!listaCartas[currentCentroIdx].esComodin && c.id === listaCartas[currentCentroIdx].id) {
+                    opt.selected = true;
+                }
+                if (otrosCentros.includes(c.id)) {
+                    opt.disabled = true;
+                    opt.textContent += ' 🔒 (Usado)';
+                }
+                selectCentro.appendChild(opt);
+            });
+
+            header.appendChild(selectCentro);
+            box.appendChild(header);
+
+            const grid = document.createElement('div');
+            // Aplicar la clase correcta según el formato actual
+            grid.className = currentFormato === 5 ? 'grid-5x5' : 'grid-3x3';
+
+            listaCartas.forEach((carta, idx) => {
+                const celda = crearCelda(carta, idx === currentCentroIdx);
+                grid.appendChild(celda);
+            });
+
+            box.appendChild(grid);
+            contenedor.appendChild(box);
+        }
+
+        function crearCelda(carta, esCentro) {
+            const celda = document.createElement('div');
+            celda.className = 'celda';
+            if (esCentro) celda.classList.add('celda-centro-especial');
+
+            if (carta.esComodin) {
+                celda.innerHTML = `
+                    <div class="celda-fallback" style="background:#fff8e1; border-color:#ffa000;">
+                        <span class="num" style="font-size:1.4rem;">⭐</span>
+                        <span class="nombre" style="font-size:0.65rem; font-weight:bold; color:#b78103;">COMODÍN</span>
+                    </div>
+                `;
+                return celda;
+            }
+
+            const img = document.createElement('img');
+            img.src = carta.img;
+            img.alt = carta.nombre;
+            img.loading = 'lazy';
+
+            img.onerror = function() {
+                if (!this.dataset.proboPng) {
+                    this.dataset.proboPng = 'true';
+                    this.src = `${CARPETA_FICHAS}/${carta.id}${EXTENSION_RESPALDO}`;
+                } else {
+                    this.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className = 'celda-fallback';
+                    fallback.innerHTML = `
+                        <span class="num">${carta.id}</span>
+                        <span class="nombre">${carta.nombre}</span>
+                    `;
+                    celda.appendChild(fallback);
+                }
+            };
+
+            celda.appendChild(img);
+            return celda;
+        }
+    </script>
+</body>
+</html>

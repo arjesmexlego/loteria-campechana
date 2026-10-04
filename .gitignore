@@ -1,0 +1,27 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos temporales
+*.log
+*.tmp
+*.swp
+*~
+
+# Exportaciones generadas (no versionar PDFs/ZIPs)
+*.pdf
+*.zip
+
+# Entornos/builds
+node_modules/
+dist/
+build/
+.cache/
+.vite/
+.parcel-cache/
+
+# Editores/IDE
+.vscode/
+.idea/
+*.sublime-*

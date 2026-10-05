@@ -3,6 +3,32 @@
 Instrucciones operativas para agentes de IA (y notas de contexto para cualquier
 colaborador) que trabajen en este repositorio.
 
+> **Este archivo es la memoria del proyecto.** Las herramientas de IA no
+> recuerdan nada entre sesiones: lo único que sobrevive es lo que está escrito
+> aquí y en `ANALISIS_PROYECTO_LOTERIA_CAMPECHANA.md`. Si algo no está
+> documentado, no está guardado.
+
+---
+
+## 0. Estado actual y cómo retomar
+
+| Dato | Valor |
+|---|---|
+| Rama | `main` (única) |
+| Remoto | `https://github.com/arjesmexlego/loteria-campechana.git` |
+| Deploy | GitHub Pages, serviendo `main` sin build step |
+| Última versión buena de `index.html` | `c395fe1:index.html` (660 líneas) |
+| Estado del árbol | limpio, `main` == `origin/main` |
+
+**Protocolo al iniciar una sesión nueva:**
+
+1. Leer este `AGENTS.md` completo y el §5.1 de `ANALISIS_...md`.
+2. `git fetch origin && git status` → confirmar árbol limpio y sin pendientes.
+3. `git pull origin main` → sincronizar (ver §6.1, **obligatorio**: el proyecto
+   también se edita desde la web de GitHub).
+4. Antes de terminar cualquier cambio: `git grep -n -E '^(<<<<<<<|>>>>>>>|=======$)' -- .`
+   debe dar cero (§8).
+
 ---
 
 ## 1. Qué es el proyecto

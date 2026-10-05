@@ -15,6 +15,8 @@ El proyecto **Lotería Campechana** es una aplicación web estática diseñada p
 ```text
 Loteria-campechana/
 ├── index.html                        # Aplicación completa (UI, estilos y lógica JS)
+├── AGENTS.md                         # Contexto operativo + reglas para agentes de IA
+├── .gitignore
 ├── fichas/                           # Imágenes de fichas en formato .webp (principal)
 │   ├── 1.webp ... 90.webp
 │   └── cartilla-Cg6x0W1r.js.descarga # Archivo .js descargado (posible backup/export)
@@ -266,7 +268,56 @@ chore: inicializar repositorio Lotería Campechana
 
 | Archivo | Estado | Acción sugerida |
 |---|---|---|
-| `index.html` | Principal | Mantener. Ideal candidato para dividir en `styles.css`, `app.js` en futuro si crece. |
+| `index.html` | Principal | Mantener. Ideal candidato para dividir en `styles.css`, `app.js` en futuro si crece. Referencia limpia conocida: `c395fe1:index.html` (660 líneas). |
+| `AGENTS.md` | Contexto operativo | Mantener y actualizar junto con cada cambio (ver §11). |
 | `fichas/*.webp` | OK | Versionar (assets). |
 | `fichaspng/*.png` | OK (respaldo) | Versionar o evaluar si necesario mantener ambos. |
 | `fichas/cartilla-Cg6x0W1r.js.descarga` | Sin uso | Investigar origen. Si es backup obsoleto, se puede eliminar o mover a `docs/`. |
+
+---
+
+## 11. Historial de Incidentes y Reglas de Git
+
+### 11.1 Incidente: `index.html` commiteado con marcadores de conflicto
+
+**Qué pasó.** El commit `87b6d49` ("merge: resolver conflicto con archivos
+subidos desde web") se creó **sin resolver realmente** el conflicto. El blob
+resultante de `index.html` conserva los marcadores:
+
+| Línea | Contenido |
+|---|---|
+| 1 | `<<<<<<< HEAD` |
+| 661 | `=======` |
+| 1321 | `>>>>>>> origin/main` |
+
+Como el bloque de conflicto contenía el archivo completo, `index.html` quedó
+con **1322 líneas** (el documento duplicado dos veces) en lugar de 660. El
+archivo estaba roto **tanto en el repo como en producción** (GitHub Pages
+servía `main`).
+
+**Causa raíz.** El proyecto se edita también desde la interfaz web de GitHub
+("Add files via upload"). Eso genera commits en `origin/main` que el clon local
+no tiene; al hacer `git pull` Git no puede fusionar un archivo grande no
+trackeado y deja el conflicto sin resolver. El merge se selló con `git commit`
+sin editar el archivo.
+
+**Resolución aplicada.** Ambos lados del conflicto eran **idénticos byte a byte**
+(659 líneas cada uno), por lo que la resolución fue trivial: quedarse con una
+sola copia.
+
+```bash
+git checkout c395fe1 -- index.html
+```
+
+**Resultado:** `index.html` = 660 líneas, sin marcadores, idéntico a la versión
+subida desde la web.
+
+**Prevención (ver `AGENTS.md` §6.1 y §8).**
+
+1. Siempre `git fetch origin && git pull` **antes** de editar.
+2. Nunca hacer commit de un archivo con marcadores de conflicto.
+3. Verificar con
+   `git grep -n -E '^(<<<<<<<|>>>>>>>|=======$)' -- .` → debe dar **cero**.
+4. Añadir `.gitattributes` con `* text=auto eol=lf` para normalizar finales de
+   línea (pendiente; `core.autocrlf=true` en Windows causa diffs de
+   "todo el archivo cambió").

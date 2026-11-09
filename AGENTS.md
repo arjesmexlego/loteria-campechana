@@ -19,7 +19,7 @@ colaborador) que trabajen en este repositorio.
 | Deploy | GitHub Pages, serviendo `main` sin build step |
 | Versión actual de `index.html` | `main`, **1178 líneas** (CSS 7–365, HTML 367–418, JS 420–1176) |
 | Referencia histórica limpia | `c395fe1:index.html` (660 líneas) |
-| Último commit funcional | `7e6cdc6` — PNG/ZIP, PDF compacto y color del centro |
+| Último commit funcional | `0a4ad29` — esquinas redondeadas y separación de 2 px entre cartillas |
 | Estado del árbol | limpio, `main` == `origin/main` |
 
 **Protocolo al iniciar una sesión nueva:**
@@ -270,9 +270,12 @@ duplicado dos veces (líneas 1–1322 en lugar de 660).
 | `8f3cd79` | `fix: eliminar marcadores…` — restaura `index.html` limpio |
 | `9b2b10c` | `docs: anadir seccion 0…` — estado del repo y protocolo de reanudación |
 | `7e6cdc6` | `feat: exportar cartillas PNG/ZIP…` — descarga PNG (ZIP), PDF compacto y color del centro |
+| `58305b8` | `docs: registrar el commit 7e6cdc6…` — estado e historial |
+| `0a4ad29` | `feat: esquinas redondeadas y separacion de 2 px…` — gap de 2 px, radio de 6 px en pantalla/PDF/PNG y tip de impresión |
 
-Referencias limpias de `index.html`: **`c395fe1:index.html`** (660 líneas) y
-**`7e6cdc6:index.html`** (1146 líneas, versión actual).
+Referencias limpias de `index.html`: **`c395fe1:index.html`** (660 líneas),
+**`7e6cdc6:index.html`** (1146 líneas) y **`0a4ad29:index.html`** (1178 líneas,
+versión actual).
 
 ---
 

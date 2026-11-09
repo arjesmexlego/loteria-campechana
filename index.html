@@ -14,6 +14,9 @@
             
             /* Medida del lado para formato cuadrado */
             --cartilla-lado: 13.5cm;
+
+            /* Color del marco del centro (se sobrescribe desde el panel) */
+            --centro-color: #ffa000;
         }
 
         * {
@@ -86,6 +89,39 @@
             border-radius: 6px;
             font-size: 0.9rem;
             text-align: center;
+        }
+
+        .grupo-control input[type="color"] {
+            width: 42px;
+            height: 34px;
+            padding: 2px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .grupo-control input[type="color"]:disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
+        }
+
+        .etiqueta-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #495057;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .etiqueta-check input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary-color);
+            cursor: pointer;
         }
 
         select, button {
@@ -230,8 +266,18 @@
         }
 
         .celda-centro-especial {
-            background: #fffde7 !important;
-            box-shadow: inset 0 0 0 2px #ffa000 !important;
+            background: #ffffff !important;
+            box-shadow: inset 0 0 0 2px var(--centro-color) !important;
+        }
+
+        /* "Sin color": el centro queda blanco y sin marco */
+        body.sin-color-centro .celda-centro-especial {
+            box-shadow: none !important;
+        }
+
+        /* El comodín en el centro usa el marco global, no su borde naranja fijo */
+        .celda-centro-especial .celda-fallback {
+            border-color: transparent !important;
         }
 
         .celda-fallback {
@@ -256,6 +302,7 @@
         .acciones {
             margin-top: 30px;
             display: flex;
+            flex-wrap: wrap;
             gap: 15px;
             justify-content: center;
         }
@@ -273,11 +320,20 @@
         }
 
         .btn-accion:active { transform: scale(0.96); }
+
+        .btn-accion:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+            transform: none;
+            box-shadow: none;
+        }
+
         .btn-imprimir { background-color: #2e7d32; }
+        .btn-descargar { background-color: #1565c0; }
 
         /* --- REGLAS DE IMPRESIÓN FÍSICA ESTRICTA (PDF) --- */
         @media print {
-            @page { size: letter portrait; margin: 1cm; }
+            @page { size: letter portrait; margin: 0.5cm; }
             body {
                 background: white !important;
                 padding: 0 !important;
@@ -289,11 +345,12 @@
             #contenedor-cartillas {
                 display: flex !important; flex-wrap: wrap !important;
                 justify-content: flex-start !important; align-items: flex-start !important;
-                align-content: flex-start !important; gap: 0.5cm !important;
+                align-content: flex-start !important; gap: 0 !important;
                 width: 100% !important; padding: 0 !important; margin: 0 !important;
             }
             .cartilla-box {
                 box-shadow: none !important; border: 2px solid #000 !important;
+                border-radius: 0 !important;
                 width: var(--cartilla-lado) !important; height: var(--cartilla-lado) !important;
                 min-width: var(--cartilla-lado) !important; max-width: var(--cartilla-lado) !important;
                 box-sizing: border-box !important; page-break-inside: avoid !important;
@@ -313,7 +370,7 @@
     <p class="subtitulo">Generador de Cartillas (5x5 y 3x3) - Ajuste Estricto PDF</p>
 
     <div class="nota-impresion">
-        💡 <b>Tip para imprimir:</b> En la ventana de impresión, asegúrate de que la opción <b>Escala</b> esté en <b>"Predeterminado"</b> o <b>"100%"</b> para garantizar las medidas exactas en centímetros.
+        💡 <b>Tip para imprimir:</b> usa <b>Escala 100%</b>. En el PDF las cartillas salen <b>pegadas entre sí</b> (sin separación) y con margen de <b>0.5 cm</b>, para cortar una sola vez. También puedes descargarlas como <b>PNG (ZIP)</b> con el botón azul.
     </div>
 
     <!-- PANEL DE CONTROL -->
@@ -333,11 +390,20 @@
         </div>
 
         <div class="grupo-control">
+            <label for="input-color-centro">🎨 Color centro:</label>
+            <input type="color" id="input-color-centro" value="#ffa000" oninput="actualizarColorCentro()" aria-label="Color del marco del centro">
+            <label class="etiqueta-check" for="chk-sin-color-centro">
+                <input type="checkbox" id="chk-sin-color-centro" onchange="actualizarColorCentro()">
+                Sin color
+            </label>
+        </div>
+
+        <div class="grupo-control">
             <label>Cartillas a generar:</label>
             <input type="number" id="input-cantidad" value="4" min="1" max="100">
             <button class="btn-opcion" id="btn-azar" onclick="generar(false)">🎲 Al Azar</button>
             <button class="btn-opcion activo" id="btn-completo" onclick="generar(true)">🧩 Juego Completo</button>
-            <button class="btn-opcion" onclick="renderPlanillaBtn()">📋 Planilla 90</button>
+            <button class="btn-opcion" id="btn-planilla" onclick="renderPlanillaBtn()">📋 Planilla 90</button>
         </div>
 
     </div>
@@ -347,6 +413,7 @@
 
     <!-- BOTONES DE ACCIÓN -->
     <div class="acciones">
+        <button class="btn-accion btn-descargar" id="btn-descargar-imagenes" onclick="descargarCartillasPNG()">🖼️ Descargar PNG (ZIP)</button>
         <button class="btn-accion btn-imprimir" onclick="window.print()">🖨️ Imprimir PDF</button>
     </div>
 
@@ -365,8 +432,16 @@
         let currentCentroIdx = 12;    // Índice central (12 para 5x5, 4 para 3x3)
         let slotsPorCartilla = 25;
 
+        // Color global del marco del centro
+        let colorCentroActual = '#ffa000';
+        let centroSinColor = false;
+
+        // Evita exportaciones simultáneas y dobles clics
+        let exportandoImagenes = false;
+
         window.addEventListener('DOMContentLoaded', () => {
             actualizarMedidas();
+            actualizarColorCentro();
             generar(true); // Generar modo completo al inicio
         });
 
@@ -405,6 +480,39 @@
             if(idBoton) document.getElementById(idBoton).classList.add('activo');
         }
 
+        // COLOR GLOBAL DEL CENTRO (solo marco)
+        function actualizarColorCentro() {
+            const input = document.getElementById('input-color-centro');
+            const chk = document.getElementById('chk-sin-color-centro');
+            if (!input || !chk) return;
+
+            centroSinColor = chk.checked;
+            colorCentroActual = input.value || '#ffa000';
+            input.disabled = centroSinColor;
+            document.documentElement.style.setProperty(
+                '--centro-color',
+                centroSinColor ? 'transparent' : colorCentroActual
+            );
+            document.body.classList.toggle('sin-color-centro', centroSinColor);
+            actualizarBotonDescarga();
+        }
+
+        function obtenerColorCentro() {
+            return centroSinColor ? null : colorCentroActual;
+        }
+
+        // ESTADO DEL BOTÓN DE DESCARGA DE IMÁGENES
+        function actualizarBotonDescarga() {
+            const btn = document.getElementById('btn-descargar-imagenes');
+            if (!btn) return;
+
+            const hayCartillas = cartillasGuardadas.length > 0;
+            btn.disabled = !hayCartillas || exportandoImagenes;
+            btn.title = hayCartillas
+                ? 'Descarga un ZIP con un PNG por cartilla a 300 DPI'
+                : 'Genera cartillas para poder descargarlas como imagen';
+        }
+
         // GENERACIÓN PRINCIPAL
         function generar(esCompleto) {
             const contenedor = document.getElementById('contenedor-cartillas');
@@ -427,6 +535,8 @@
                     renderCartilla(contenedor, listaAleatoria, i);
                 }
             }
+
+            actualizarBotonDescarga();
         }
 
         function renderPlanillaBtn() {
@@ -434,6 +544,8 @@
             document.body.setAttribute('data-cant', '90');
             const contenedor = document.getElementById('contenedor-cartillas');
             contenedor.innerHTML = '';
+            cartillasGuardadas = [];
+            actualizarBotonDescarga();
             
             const box = document.createElement('div');
             box.className = 'planilla-box';
@@ -654,6 +766,380 @@
 
             celda.appendChild(img);
             return celda;
+        }
+
+        // ============================================================
+        // DESCARGA DE CARTILLAS COMO IMÁGENES PNG (ZIP, 300 DPI)
+        // ============================================================
+
+        const cacheImagenesExportacion = new Map();
+        const FACTOR_CSS_A_300DPI = 300 / 96;
+
+        function cargarImagenParaExportar(ficha) {
+            if (cacheImagenesExportacion.has(ficha.id)) {
+                return cacheImagenesExportacion.get(ficha.id);
+            }
+
+            const promesa = new Promise((resolve) => {
+                const img = new Image();
+                let intentoRespaldo = false;
+
+                img.onload = () => resolve(img);
+                img.onerror = () => {
+                    if (!intentoRespaldo) {
+                        intentoRespaldo = true;
+                        img.src = `${CARPETA_FICHAS}/${ficha.id}${EXTENSION_RESPALDO}`;
+                    } else {
+                        resolve(null);
+                    }
+                };
+
+                img.src = ficha.img;
+            });
+
+            cacheImagenesExportacion.set(ficha.id, promesa);
+            return promesa;
+        }
+
+        async function descargarCartillasPNG() {
+            if (exportandoImagenes) return;
+
+            const totalCartillas = cartillasGuardadas.length;
+            if (totalCartillas === 0) {
+                alert('Primero genera cartillas. En la Planilla 90 no hay cartillas para descargar.');
+                return;
+            }
+
+            if (totalCartillas > 30) {
+                const continuar = confirm(`Se generarán ${totalCartillas} imágenes a 300 DPI. El ZIP puede tardar y pesar bastante. ¿Continuar?`);
+                if (!continuar) return;
+            }
+
+            const btn = document.getElementById('btn-descargar-imagenes');
+            if (!btn) return;
+
+            exportandoImagenes = true;
+            const textoOriginal = btn.textContent;
+            btn.disabled = true;
+
+            try {
+                const inputLado = parseFloat(document.getElementById('input-lado').value);
+                const ladoCm = Number.isFinite(inputLado)
+                    ? Math.min(19, Math.max(5, inputLado))
+                    : (currentFormato === 5 ? 13.5 : 9);
+                const ladoPx = Math.round((ladoCm / 2.54) * 300);
+                const formato = currentFormato;
+                const centroIdx = currentCentroIdx;
+                const colorCentro = obtenerColorCentro();
+                const cartillas = cartillasGuardadas.map(cartilla => cartilla.slice());
+
+                if (ladoPx < 100) {
+                    throw new Error('La medida de la cartilla es demasiado pequeña para exportar.');
+                }
+
+                const fichasUnicas = new Map();
+                cartillas.forEach(cartilla => {
+                    cartilla.forEach(ficha => {
+                        if (!ficha.esComodin) fichasUnicas.set(ficha.id, ficha);
+                    });
+                });
+
+                const imagenes = new Map();
+                let cargadas = 0;
+                await Promise.all([...fichasUnicas.values()].map(async (ficha) => {
+                    const img = await cargarImagenParaExportar(ficha);
+                    imagenes.set(ficha.id, img);
+                    cargadas++;
+                    btn.textContent = `⏳ Cargando imágenes ${cargadas}/${fichasUnicas.size}…`;
+                }));
+
+                const canvas = document.createElement('canvas');
+                canvas.width = ladoPx;
+                canvas.height = ladoPx;
+                const ctx = canvas.getContext('2d');
+
+                if (!ctx) {
+                    throw new Error('El navegador no pudo preparar el lienzo de dibujo.');
+                }
+
+                const archivos = [];
+                for (let i = 0; i < cartillas.length; i++) {
+                    btn.textContent = `⏳ Generando ${i + 1}/${cartillas.length}…`;
+                    dibujarCartillaEnCanvas(ctx, cartillas[i], ladoPx, formato, centroIdx, colorCentro, imagenes);
+
+                    const blob = await new Promise((resolve, reject) => {
+                        canvas.toBlob((resultado) => {
+                            if (resultado) resolve(resultado);
+                            else reject(new Error('El navegador no pudo crear el PNG.'));
+                        }, 'image/png');
+                    });
+
+                    const datos = new Uint8Array(await blob.arrayBuffer());
+                    archivos.push({
+                        nombre: `cartilla-${String(i + 1).padStart(2, '0')}-${formato}x${formato}.png`,
+                        datos
+                    });
+
+                    // Ceder el hilo para que el navegador refresque el progreso
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+
+                btn.textContent = '🗜️ Creando ZIP…';
+                const zip = crearZip(archivos);
+                descargarBlob(zip, `cartillas-loteria-${formato}x${formato}-${archivos.length}-${fechaParaArchivo()}.zip`);
+            } catch (error) {
+                console.error(error);
+                const detalle = error && error.message ? error.message : String(error);
+                alert('No se pudieron generar las imágenes. ' + detalle + ' Si abriste index.html directamente (file://), prueba desde el sitio publicado o con un servidor local.');
+            } finally {
+                exportandoImagenes = false;
+                btn.disabled = false;
+                btn.textContent = textoOriginal;
+                actualizarBotonDescarga();
+            }
+        }
+
+        function dibujarCartillaEnCanvas(ctx, cartilla, ladoPx, formato, centroIdx, colorCentro, imagenes) {
+            const n = formato;
+            const factor = FACTOR_CSS_A_300DPI;
+            const bordeExterior = Math.max(2, Math.round(2 * factor));
+            const linea = Math.max(1, Math.round(1 * factor));
+            const padding = Math.max(1, Math.round(2 * factor));
+            const marco = Math.max(2, Math.round(2 * factor));
+
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, ladoPx, ladoPx);
+
+            const x0 = bordeExterior;
+            const y0 = bordeExterior;
+            const area = ladoPx - (bordeExterior * 2);
+            const ladoCelda = (area - (linea * (n - 1))) / n;
+
+            // Fondo negro: las separaciones internas se ven como líneas
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(x0, y0, area, area);
+
+            for (let fila = 0; fila < n; fila++) {
+                for (let col = 0; col < n; col++) {
+                    const indice = fila * n + col;
+                    const ficha = cartilla[indice];
+                    const esCentro = indice === centroIdx;
+                    const x = x0 + (col * (ladoCelda + linea));
+                    const y = y0 + (fila * (ladoCelda + linea));
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(x, y, ladoCelda, ladoCelda);
+
+                    if (ficha.esComodin) {
+                        dibujarComodinEnCanvas(ctx, x, y, ladoCelda, esCentro, colorCentro, marco);
+                    } else {
+                        const img = imagenes.get(ficha.id);
+                        if (img) {
+                            dibujarImagenContenida(
+                                ctx,
+                                img,
+                                x + padding,
+                                y + padding,
+                                ladoCelda - (padding * 2),
+                                ladoCelda - (padding * 2)
+                            );
+                        } else {
+                            dibujarFallbackEnCanvas(ctx, ficha, x, y, ladoCelda);
+                        }
+
+                        if (esCentro && colorCentro) {
+                            dibujarMarcoInterior(ctx, x, y, ladoCelda, ladoCelda, marco, colorCentro);
+                        }
+                    }
+                }
+            }
+
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = bordeExterior;
+            ctx.strokeRect(bordeExterior / 2, bordeExterior / 2, ladoPx - bordeExterior, ladoPx - bordeExterior);
+            ctx.restore();
+        }
+
+        function dibujarComodinEnCanvas(ctx, x, y, lado, esCentro, colorCentro, marco) {
+            ctx.fillStyle = '#fff8e1';
+            ctx.fillRect(x, y, lado, lado);
+
+            const colorMarco = esCentro ? colorCentro : '#ffa000';
+            if (colorMarco) {
+                dibujarMarcoInterior(ctx, x, y, lado, lado, marco, colorMarco);
+            }
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = `${Math.round(lado * 0.26)}px sans-serif`;
+            ctx.fillText('⭐', x + (lado / 2), y + (lado * 0.42));
+            ctx.fillStyle = '#b78103';
+            ctx.font = `700 ${Math.max(7, Math.round(lado * 0.075))}px sans-serif`;
+            ctx.fillText('COMODÍN', x + (lado / 2), y + (lado * 0.72));
+            ctx.textAlign = 'start';
+            ctx.textBaseline = 'alphabetic';
+        }
+
+        function dibujarMarcoInterior(ctx, x, y, ancho, alto, grosor, color) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = grosor;
+            ctx.strokeRect(x + (grosor / 2), y + (grosor / 2), ancho - grosor, alto - grosor);
+        }
+
+        function dibujarImagenContenida(ctx, img, x, y, ancho, alto) {
+            const anchoImg = img.naturalWidth || img.width;
+            const altoImg = img.naturalHeight || img.height;
+            if (!anchoImg || !altoImg) return;
+
+            const escala = Math.min(ancho / anchoImg, alto / altoImg);
+            const anchoFinal = anchoImg * escala;
+            const altoFinal = altoImg * escala;
+
+            ctx.drawImage(
+                img,
+                x + ((ancho - anchoFinal) / 2),
+                y + ((alto - altoFinal) / 2),
+                anchoFinal,
+                altoFinal
+            );
+        }
+
+        function dibujarFallbackEnCanvas(ctx, ficha, x, y, lado) {
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(x, y, lado, lado);
+
+            ctx.strokeStyle = '#dee2e6';
+            ctx.lineWidth = Math.max(1, Math.round(lado * 0.006));
+            const guion = Math.max(2, Math.round(lado * 0.02));
+            ctx.setLineDash([guion, guion]);
+            ctx.strokeRect(x + 1, y + 1, lado - 2, lado - 2);
+            ctx.setLineDash([]);
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#c62828';
+            ctx.font = `800 ${Math.max(10, Math.round(lado * 0.18))}px sans-serif`;
+            ctx.fillText(String(ficha.id), x + (lado / 2), y + (lado * 0.42));
+            ctx.fillStyle = '#495057';
+            ctx.font = `600 ${Math.max(7, Math.round(lado * 0.085))}px sans-serif`;
+            ctx.fillText(ficha.nombre, x + (lado / 2), y + (lado * 0.66));
+            ctx.textAlign = 'start';
+            ctx.textBaseline = 'alphabetic';
+        }
+
+        // ZIP sin compresión (método STORE): no requiere librerías externas
+        const TABLA_CRC32 = (() => {
+            const tabla = new Uint32Array(256);
+            for (let n = 0; n < 256; n++) {
+                let c = n;
+                for (let k = 0; k < 8; k++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                tabla[n] = c >>> 0;
+            }
+            return tabla;
+        })();
+
+        function crc32(datos) {
+            let crc = 0xFFFFFFFF;
+            for (let i = 0; i < datos.length; i++) {
+                crc = TABLA_CRC32[(crc ^ datos[i]) & 0xFF] ^ (crc >>> 8);
+            }
+            return (crc ^ 0xFFFFFFFF) >>> 0;
+        }
+
+        function crearZip(archivos) {
+            const codificador = new TextEncoder();
+            const ahora = new Date();
+            const horaDos = (ahora.getHours() << 11) | (ahora.getMinutes() << 5) | Math.floor(ahora.getSeconds() / 2);
+            const fechaDos = ((ahora.getFullYear() - 1980) << 9) | ((ahora.getMonth() + 1) << 5) | ahora.getDate();
+
+            const partesLocales = [];
+            const partesCentrales = [];
+            let desplazamiento = 0;
+
+            archivos.forEach((archivo) => {
+                const nombre = codificador.encode(archivo.nombre);
+                const datos = archivo.datos;
+                const crc = crc32(datos);
+                const tamano = datos.length;
+
+                const encabezadoLocal = new Uint8Array(30 + nombre.length);
+                const vistaLocal = new DataView(encabezadoLocal.buffer);
+                vistaLocal.setUint32(0, 0x04034b50, true);
+                vistaLocal.setUint16(4, 20, true);
+                vistaLocal.setUint16(6, 0, true);
+                vistaLocal.setUint16(8, 0, true);
+                vistaLocal.setUint16(10, horaDos, true);
+                vistaLocal.setUint16(12, fechaDos, true);
+                vistaLocal.setUint32(14, crc, true);
+                vistaLocal.setUint32(18, tamano, true);
+                vistaLocal.setUint32(22, tamano, true);
+                vistaLocal.setUint16(26, nombre.length, true);
+                vistaLocal.setUint16(28, 0, true);
+                encabezadoLocal.set(nombre, 30);
+                partesLocales.push(encabezadoLocal, datos);
+
+                const encabezadoCentral = new Uint8Array(46 + nombre.length);
+                const vistaCentral = new DataView(encabezadoCentral.buffer);
+                vistaCentral.setUint32(0, 0x02014b50, true);
+                vistaCentral.setUint16(4, 20, true);
+                vistaCentral.setUint16(6, 20, true);
+                vistaCentral.setUint16(8, 0, true);
+                vistaCentral.setUint16(10, 0, true);
+                vistaCentral.setUint16(12, horaDos, true);
+                vistaCentral.setUint16(14, fechaDos, true);
+                vistaCentral.setUint32(16, crc, true);
+                vistaCentral.setUint32(20, tamano, true);
+                vistaCentral.setUint32(24, tamano, true);
+                vistaCentral.setUint16(28, nombre.length, true);
+                vistaCentral.setUint16(30, 0, true);
+                vistaCentral.setUint16(32, 0, true);
+                vistaCentral.setUint16(34, 0, true);
+                vistaCentral.setUint16(36, 0, true);
+                vistaCentral.setUint32(38, 0, true);
+                vistaCentral.setUint32(42, desplazamiento, true);
+                encabezadoCentral.set(nombre, 46);
+                partesCentrales.push(encabezadoCentral);
+
+                desplazamiento += encabezadoLocal.length + datos.length;
+            });
+
+            const tamanoCentral = partesCentrales.reduce((total, parte) => total + parte.length, 0);
+
+            const fin = new Uint8Array(22);
+            const vistaFin = new DataView(fin.buffer);
+            vistaFin.setUint32(0, 0x06054b50, true);
+            vistaFin.setUint16(4, 0, true);
+            vistaFin.setUint16(6, 0, true);
+            vistaFin.setUint16(8, archivos.length, true);
+            vistaFin.setUint16(10, archivos.length, true);
+            vistaFin.setUint32(12, tamanoCentral, true);
+            vistaFin.setUint32(16, desplazamiento, true);
+            vistaFin.setUint16(20, 0, true);
+
+            return new Blob([...partesLocales, ...partesCentrales, fin], { type: 'application/zip' });
+        }
+
+        function descargarBlob(blob, nombre) {
+            const url = URL.createObjectURL(blob);
+            const enlace = document.createElement('a');
+            enlace.href = url;
+            enlace.download = nombre;
+            enlace.style.display = 'none';
+            document.body.appendChild(enlace);
+            enlace.click();
+            enlace.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 15000);
+        }
+
+        function fechaParaArchivo() {
+            const ahora = new Date();
+            const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+            const dia = String(ahora.getDate()).padStart(2, '0');
+            return `${ahora.getFullYear()}-${mes}-${dia}`;
         }
     </script>
 </body>

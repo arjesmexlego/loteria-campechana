@@ -17,8 +17,9 @@ colaborador) que trabajen en este repositorio.
 | Rama | `main` (única) |
 | Remoto | `https://github.com/arjesmexlego/loteria-campechana.git` |
 | Deploy | GitHub Pages, serviendo `main` sin build step |
-| Última versión buena de `index.html` | `c395fe1:index.html` (660 líneas) |
-| Estado del árbol | limpio, `main` == `origin/main` |
+| Versión actual de `index.html` | `main`, **1146 líneas** (CSS 7–365, HTML 367–418, JS 420–1144) |
+| Referencia histórica limpia | `c395fe1:index.html` (660 líneas) |
+| Estado del árbol | limpio, `main` == `origin/main` (actualizar tras el commit de este cambio) |
 
 **Protocolo al iniciar una sesión nueva:**
 
@@ -40,8 +41,12 @@ genera **cartillas imprimibles** para el juego de Lotería Campechana.
 - Mazo completo de **90 fichas** numeradas del 1 al 90.
 - Modos de generación: **Al Azar** (aleatorio) y **Juego Completo** (reparto
   matemático que cubre el mazo completo).
+- Color global del **marco del centro**, con opción **"Sin color"** (fondo
+  blanco y sin marco).
 - Salida principal: **impresión/PDF con medidas reales en centímetros**
-  (tamaño carta, margen 1 cm, escala 100%).
+  (tamaño carta, margen 0.5 cm, cartillas pegadas entre sí, escala 100%).
+- Salida alternativa: **ZIP con un PNG por cartilla** (300 DPI, sin cabecera ni
+  selector), generado en el navegador sin dependencias externas.
 
 Todo el código, comentarios y textos de UI están en **español (MX)**. Mantener
 ese idioma en cualquier código o documentación nueva.
@@ -52,7 +57,7 @@ ese idioma en cualquier código o documentación nueva.
 
 ```text
 Loteria-campechana/
-├── index.html            # TODO el código: CSS + HTML + JS en un solo archivo (660 líneas)
+├── index.html            # TODO el código: CSS + HTML + JS en un solo archivo (1146 líneas)
 ├── AGENTS.md             # Este archivo (contexto + reglas de trabajo)
 ├── ANALISIS_PROYECTO_LOTERIA_CAMPECHANA.md   # Análisis técnico detallado
 ├── .gitignore
@@ -69,17 +74,20 @@ necesarios para que la app funcione en producción).
 | Rango | Contenido |
 |---|---|
 | 1–6 | `<head>`, metadatos |
-| 7–308 | `<style>` — variables CSS, UI, grids, estados, `@media print` |
-| 310–351 | `<body>` — título, panel de control, `#contenedor-cartillas`, botón imprimir |
-| 353–658 | `<script>` — toda la lógica |
+| 7–365 | `<style>` — variables CSS, UI, grids, estados, color del centro, `@media print` |
+| 367–418 | `<body>` — título, panel de control (formato, lado, color, generación), `#contenedor-cartillas`, botones de descarga e impresión |
+| 420–1144 | `<script>` — toda la lógica (generación, render, swap, exportación PNG/ZIP) |
 
 Anclas del DOM usadas por JS (no renombrar sin actualizar el JS):
 
 - `#input-lado` (number, 5–19, step 0.5)
 - `#input-cantidad` (number, 1–100)
+- `#input-color-centro` (color), `#chk-sin-color-centro` (checkbox)
 - `#btn-azar`, `#btn-completo`, `#btn-planilla`
+- `#btn-descargar-imagenes` (botón PNG/ZIP)
 - `#contenedor-cartillas`
 - `body[data-cant]` — cantidad de cartillas objetivo según formato
+- `body.sin-color-centro` — activa el modo "Sin color" del marco central
 
 ---
 
@@ -97,6 +105,15 @@ let cartillasGuardadas = [];   // array de arrays de fichas
 let currentFormato = 5;        // 5 | 3
 let currentCentroIdx = 12;     // 12 en 5x5, 4 en 3x3
 let slotsPorCartilla = 25;
+
+// Color global del marco del centro
+let colorCentroActual = '#ffa000';
+let centroSinColor = false;
+
+// Exportación PNG/ZIP
+let exportandoImagenes = false;
+const cacheImagenesExportacion = new Map();
+const FACTOR_CSS_A_300DPI = 300 / 96;
 ```
 
 ### 3.2 "Juego Completo" — matemática
@@ -124,6 +141,14 @@ repeticiones. Se baraja el mazo y se corta en 10 bloques consecutivos
    centro, se busca X en cualquier cartilla/celda y se truequea con el centro
    actual. No se debe "simplemente overwrite" una casilla.
 4. En 3x3 "Juego Completo" la cobertura del mazo es total y sin repeticiones.
+5. **El color del centro se aplica solo al marco** (no al fondo). "Sin color"
+   deja el centro con fondo blanco y sin marco. La exportación PNG debe
+   reflejar el mismo centro y color que se ven en pantalla.
+6. **El ZIP debe ser válido**: método STORE + CRC32, un PNG por cartilla, sin
+   librerías externas. No sustituir por `html2canvas` salvo decisión explícita
+   (sería la primera dependencia externa).
+7. **La Planilla 90 no se exporta** con el botón de cartillas: al entrar en ese
+   modo se limpia `cartillasGuardadas` y el botón queda deshabilitado.
 
 ### 3.4 Fallback de imágenes (2 niveles)
 
@@ -132,23 +157,40 @@ segundo error se elimina el `img` y se inyecta un fallback textual
 (`<div class="fallback">` con número + nombre). La lógica depende de
 `this.dataset` para no entrar en bucle.
 
+La exportación PNG replica el mismo fallback en canvas: webp → png → texto
+(número + nombre) dibujado con `ctx.fillText`.
+
 ---
 
 ## 4. Reglas de impresión (crítico)
 
 Todo el layout de cartilla usa la variable CSS `--cartilla-lado`
-(`index.html:16`, sincronizada por `actualizarMedidas()` en `index.html:373`).
+(`index.html:16`, sincronizada por `actualizarMedidas()` en `index.html:448`).
 
-- `@media print` (`index.html:279`) oculta panel de control, título, subtítulo,
+- `@media print` (`index.html:335`) oculta panel de control, título, subtítulo,
   acciones y cabeceras de cartilla.
-- `size: letter portrait; margin: 1cm`
+- `size: letter portrait; margin: 0.5cm`
+- `#contenedor-cartillas` con `gap: 0` y `.cartilla-box` con `border-radius: 0`:
+  las cartillas quedan **pegadas entre sí** para cortar una sola vez.
 - `page-break-inside: avoid` / `break-inside: avoid`
 - `-webkit-print-color-adjust: exact` y `print-color-adjust: exact`
-  para preservar el resaltado del centro y del comodín.
+  para preservar el color del marco del centro y del comodín.
+
+**Capacidad por hoja (letter, margen 0.5 cm):**
+
+| Formato | Lado | Cartillas por hoja |
+|---|---|---|
+| 5×5 | 13.5 cm | 1 |
+| 5×5 | ≤ 10 cm | 4 (2×2) |
+| 3×3 | 9 cm | 4 (2×2) |
 
 **Al modificar cualquier tamaño de celda o grid, verificar que las reglas de
-impresión siguen mandando** (`!important` en 297–298). Si se rompe, la cartilla
-sale del papel.
+impresión siguen mandando** (`!important` en `.cartilla-box`, líneas 351–359).
+Si se rompe, la cartilla sale del papel.
+
+**Salida PNG (independiente del PDF):** 300 DPI, `lado_cm / 2.54 × 300` px,
+sin cabecera ni selector, con el mismo centro y color. El ZIP se arma en el
+navegador (STORE + CRC32); no añadir dependencias para esto.
 
 ---
 
@@ -160,9 +202,11 @@ sale del papel.
 - Render vía DOM (`createElement` / `appendChild`), nunca `innerHTML` con datos
   de usuario. El único `innerHTML` permitido es para markup estático propio
   (fallback, plantillas de etiqueta).
-- Barajado siempre con `barajar()` (Fisher–Yates, `index.html:393`).
+- Barajado siempre con `barajar()` (Fisher–Yates, `index.html:468`).
+- Exportación de imágenes: **canvas 2D + ZIP propio** (STORE/CRC32). No usar
+  `html2canvas` ni librerías de ZIP; mantener la app sin dependencias.
 - Preferir añadir lógica nueva al final de la sección `<script>` respetando el
-  orden: constantes → estado → helpers → generación → render → eventos.
+  orden: constantes → estado → helpers → generación → render → exportación → eventos.
 
 ---
 
@@ -263,8 +307,17 @@ Get-Content index.html -Tail 1        # </html>
 #    - "Juego Completo" 5x5 -> 4 cartillas, centros distintos
 #    - Cambiar el centro de una cartilla: bloquea los ya usados (🔒),
 #      hace swap universal, y "Comodín" no se bloquea
-#    - "Planilla 90" muestra la grilla 9x10
+#    - "Planilla 90" muestra la grilla 9x10 y deshabilita "Descargar PNG"
 #    - Cambiar el lado (cm) redimensiona y el PDF sale a escala real
+#    - Color del centro: el marco cambia en todas las cartillas; "Sin color"
+#      deja el centro blanco y sin marco
+#    - "Descargar PNG (ZIP)":
+#        5x5 con 4 cartillas -> 4 PNG de 1594x1594 px (lado 13.5 cm)
+#        3x3 con 10 cartillas -> 10 PNG de 1063x1063 px (lado 9 cm)
+#        El ZIP debe abrir sin errores y contener un PNG por cartilla
+#    - PDF: cartillas pegadas (gap 0), sin esquinas redondeadas y margen 0.5 cm
+#      - 3x3 a 9 cm: 4 cartillas por hoja
+#      - 5x5 a 13.5 cm: 1 cartilla por hoja
 ```
 
 ---
@@ -273,14 +326,16 @@ Get-Content index.html -Tail 1        # </html>
 
 - [ ] Tooltip o texto que explique la diferencia matemática entre "Al Azar" y
       "Juego Completo" (3x3 sin repetidos vs 5x5 con 10 repetidas).
-- [ ] Deshabilitar botones durante la regeneración masiva (evitar doble clic).
-- [ ] Persistir formato/cantidad/lado en `localStorage`.
+- [ ] Deshabilitar botones de **generación** durante la regeneración masiva
+      (la exportación PNG ya se bloquea con `exportandoImagenes`).
+- [ ] Persistir formato/cantidad/lado/color del centro en `localStorage`.
 - [ ] Accesibilidad: `aria-label`, `aria-pressed` en botones activos, `focus-visible`.
-- [ ] Exportar cartillas a PNG/JPG (requeriría `html2canvas` — primera dependencia
-      externa; documentar la decisión si se acepta).
+- [ ] Exportar la **Planilla 90** como PNG único (hoy el botón se deshabilita en
+      ese modo).
+- [ ] Evaluar compresión DEFLATE para el ZIP (los PNG ya vienen comprimidos).
 - [ ] Decidir qué hacer con `fichas/cartilla-Cg6x0W1r.js.descarga` (borrar o
       mover a `docs/`).
-- [ ] Posible modularización: `index.html` monolítico de 660 líneas → `styles.css`
-      + `app.js`. Solo si el archivo sigue creciendo.
+- [ ] Posible modularización: `index.html` monolítico de **1146 líneas** →
+      `styles.css` + `app.js`. Solo si el archivo sigue creciendo.
 - [ ] Añadir `.gitattributes` para normalizar finales de línea (LF) y evitar
       conflictos de "todo el archivo cambió" en Windows (`core.autocrlf=true`).

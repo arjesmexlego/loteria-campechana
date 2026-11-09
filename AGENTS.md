@@ -17,7 +17,7 @@ colaborador) que trabajen en este repositorio.
 | Rama | `main` (única) |
 | Remoto | `https://github.com/arjesmexlego/loteria-campechana.git` |
 | Deploy | GitHub Pages, serviendo `main` sin build step |
-| Versión actual de `index.html` | `main`, **1146 líneas** (CSS 7–365, HTML 367–418, JS 420–1144) |
+| Versión actual de `index.html` | `main`, **1178 líneas** (CSS 7–365, HTML 367–418, JS 420–1176) |
 | Referencia histórica limpia | `c395fe1:index.html` (660 líneas) |
 | Último commit funcional | `7e6cdc6` — PNG/ZIP, PDF compacto y color del centro |
 | Estado del árbol | limpio, `main` == `origin/main` |
@@ -45,9 +45,11 @@ genera **cartillas imprimibles** para el juego de Lotería Campechana.
 - Color global del **marco del centro**, con opción **"Sin color"** (fondo
   blanco y sin marco).
 - Salida principal: **impresión/PDF con medidas reales en centímetros**
-  (tamaño carta, margen 0.5 cm, cartillas pegadas entre sí, escala 100%).
+  (tamaño carta, margen 0.5 cm, separación de 2 px entre cartillas y esquinas
+  redondeadas de 6 px, escala 100%).
 - Salida alternativa: **ZIP con un PNG por cartilla** (300 DPI, sin cabecera ni
-  selector), generado en el navegador sin dependencias externas.
+  selector, esquinas redondeadas), generado en el navegador sin dependencias
+  externas.
 
 Todo el código, comentarios y textos de UI están en **español (MX)**. Mantener
 ese idioma en cualquier código o documentación nueva.
@@ -58,7 +60,7 @@ ese idioma en cualquier código o documentación nueva.
 
 ```text
 Loteria-campechana/
-├── index.html            # TODO el código: CSS + HTML + JS en un solo archivo (1146 líneas)
+├── index.html            # TODO el código: CSS + HTML + JS en un solo archivo (1178 líneas)
 ├── AGENTS.md             # Este archivo (contexto + reglas de trabajo)
 ├── ANALISIS_PROYECTO_LOTERIA_CAMPECHANA.md   # Análisis técnico detallado
 ├── .gitignore
@@ -77,7 +79,7 @@ necesarios para que la app funcione en producción).
 | 1–6 | `<head>`, metadatos |
 | 7–365 | `<style>` — variables CSS, UI, grids, estados, color del centro, `@media print` |
 | 367–418 | `<body>` — título, panel de control (formato, lado, color, generación), `#contenedor-cartillas`, botones de descarga e impresión |
-| 420–1144 | `<script>` — toda la lógica (generación, render, swap, exportación PNG/ZIP) |
+| 420–1176 | `<script>` — toda la lógica (generación, render, swap, exportación PNG/ZIP) |
 
 Anclas del DOM usadas por JS (no renombrar sin actualizar el JS):
 
@@ -150,6 +152,9 @@ repeticiones. Se baraja el mazo y se corta en 10 bloques consecutivos
    (sería la primera dependencia externa).
 7. **La Planilla 90 no se exporta** con el botón de cartillas: al entrar en ese
    modo se limpia `cartillasGuardadas` y el botón queda deshabilitado.
+8. **La exportación PNG replica el diseño**: cuadrícula negra, borde exterior
+   más grueso que las líneas internas y esquinas redondeadas de 6 px (radio
+   proporcional en el canvas a 300 DPI).
 
 ### 3.4 Fallback de imágenes (2 niveles)
 
@@ -171,8 +176,12 @@ Todo el layout de cartilla usa la variable CSS `--cartilla-lado`
 - `@media print` (`index.html:335`) oculta panel de control, título, subtítulo,
   acciones y cabeceras de cartilla.
 - `size: letter portrait; margin: 0.5cm`
-- `#contenedor-cartillas` con `gap: 0` y `.cartilla-box` con `border-radius: 0`:
-  las cartillas quedan **pegadas entre sí** para cortar una sola vez.
+- `#contenedor-cartillas` con `gap: 2px` y `.cartilla-box` con
+  `border-radius: 6px`: las cartillas quedan **casi pegadas** (2 px de
+  separación, que sirve de línea de corte) y con **esquinas redondeadas**.
+- La cuadrícula sigue siendo negra: el grid usa fondo negro y `gap: 1px`
+  (líneas internas de 1 px), mientras que el borde exterior de la cartilla es
+  de 2 px (el doble de grosor).
 - `page-break-inside: avoid` / `break-inside: avoid`
 - `-webkit-print-color-adjust: exact` y `print-color-adjust: exact`
   para preservar el color del marco del centro y del comodín.
@@ -190,8 +199,9 @@ impresión siguen mandando** (`!important` en `.cartilla-box`, líneas 351–359
 Si se rompe, la cartilla sale del papel.
 
 **Salida PNG (independiente del PDF):** 300 DPI, `lado_cm / 2.54 × 300` px,
-sin cabecera ni selector, con el mismo centro y color. El ZIP se arma en el
-navegador (STORE + CRC32); no añadir dependencias para esto.
+sin cabecera ni selector, con el mismo centro, color, cuadrícula negra y
+esquinas redondeadas que se ven en pantalla. El ZIP se arma en el navegador
+(STORE + CRC32); no añadir dependencias para esto.
 
 ---
 
@@ -320,7 +330,8 @@ Get-Content index.html -Tail 1        # </html>
 #        5x5 con 4 cartillas -> 4 PNG de 1594x1594 px (lado 13.5 cm)
 #        3x3 con 10 cartillas -> 10 PNG de 1063x1063 px (lado 9 cm)
 #        El ZIP debe abrir sin errores y contener un PNG por cartilla
-#    - PDF: cartillas pegadas (gap 0), sin esquinas redondeadas y margen 0.5 cm
+#        Las esquinas del PNG deben ser redondeadas (fondo blanco fuera de la curva)
+#    - PDF: cuadrícula negra, gap de 2 px, esquinas redondeadas de 6 px y margen 0.5 cm
 #      - 3x3 a 9 cm: 4 cartillas por hoja
 #      - 5x5 a 13.5 cm: 1 cartilla por hoja
 ```
@@ -340,7 +351,7 @@ Get-Content index.html -Tail 1        # </html>
 - [ ] Evaluar compresión DEFLATE para el ZIP (los PNG ya vienen comprimidos).
 - [ ] Decidir qué hacer con `fichas/cartilla-Cg6x0W1r.js.descarga` (borrar o
       mover a `docs/`).
-- [ ] Posible modularización: `index.html` monolítico de **1146 líneas** →
+- [ ] Posible modularización: `index.html` monolítico de **1178 líneas** →
       `styles.css` + `app.js`. Solo si el archivo sigue creciendo.
 - [ ] Añadir `.gitattributes` para normalizar finales de línea (LF) y evitar
       conflictos de "todo el archivo cambió" en Windows (`core.autocrlf=true`).

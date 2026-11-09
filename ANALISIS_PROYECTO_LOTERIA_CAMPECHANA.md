@@ -95,9 +95,10 @@ El CSS incluye reglas `@media print` estrictas para garantizar medidas exactas:
 
 - Oculta panel de control, título, subtítulo, acciones y cabeceras.
 - Usa `size: letter portrait; margin: 0.5cm`.
-- `#contenedor-cartillas` usa `gap: 0` y `.cartilla-box` usa `border-radius: 0`: las cartillas quedan **pegadas entre sí** (sin espacios blancos) para cortar una sola vez.
+- `#contenedor-cartillas` usa `gap: 2px` y `.cartilla-box` usa `border-radius: 6px`: las cartillas quedan **casi pegadas** (2 px de separación como línea de corte) y con **esquinas redondeadas**.
+- La cuadrícula se mantiene negra: el grid usa fondo negro + `gap: 1px` (líneas internas de 1 px), y el borde exterior de la cartilla es de 2 px (el doble de grosor).
 - `page-break-inside: avoid` / `break-inside: avoid` para evitar cortes entre cartillas.
-- `-webkit-print-color-adjust: exact` y `print-color-adjust: exact` para preservar colores.
+- `-webkit-print-color-adjust: exact` y `print-color-adjust: exact` para preservar colores (incluido el fondo negro del grid).
 - Medidas basadas en `var(--cartilla-lado)` (cm). Recomendación: **Escala 100% / Predeterminado** en ventana de impresión.
 
 **Aprovechamiento de la hoja (letter, margen 0.5 cm):**
@@ -105,13 +106,15 @@ El CSS incluye reglas `@media print` estrictas para garantizar medidas exactas:
 | Formato | Lado | Cartillas por hoja | Nota |
 |---|---|---|---|
 | 5×5 | 13.5 cm (predeterminado) | 1 | 2×13.5 = 27 cm > 26.94 cm útiles de alto. |
-| 5×5 | ≤ 10 cm | 4 (2×2) | 2×10 = 20 cm de ancho y alto. |
-| 3×3 | 9 cm (predeterminado) | 4 (2×2) | 2×9 = 18 cm de ancho y alto. |
+| 5×5 | ≤ 10 cm | 4 (2×2) | 2×10 + 2 px ≈ 20.05 cm; cabe en 20.59 cm de ancho. |
+| 3×3 | 9 cm (predeterminado) | 4 (2×2) | 2×9 + 2 px ≈ 18.05 cm de ancho y alto. |
+
+El `gap` de 2 px no cambia la capacidad por hoja; solo añade una separación mínima entre cartillas.
 
 ### 4.5 Descarga de imágenes (PNG/ZIP)
 
 - Botón **"Descargar PNG (ZIP)"** (`#btn-descargar-imagenes`).
-- Exporta **un PNG por cartilla**, sin cabecera ni selector de centro, con el centro y el color de marco actuales.
+- Exporta **un PNG por cartilla**, sin cabecera ni selector de centro, con el centro, el color de marco, la cuadrícula negra y las esquinas redondeadas actuales (radio de 6 px CSS, proporcional a 300 DPI).
 - Resolución fija: **300 DPI**. Tamaño en píxeles = `lado_cm / 2.54 × 300`.
   - 13.5 cm → **1594×1594 px**.
   - 9 cm → **1063×1063 px**.
@@ -132,7 +135,7 @@ El CSS incluye reglas `@media print` estrictas para garantizar medidas exactas:
 |---|---|
 | **CSS (líneas 7–365)** | Variables globales, estilos UI, grids dinámicos (5×5, 3×3, 9×10), estados (centro especial, fallback), color del centro, reglas de impresión. |
 | **HTML (367–418)** | Estructura UI: título, panel de control (formato, lado, color del centro, generación), contenedor, botones de descarga e impresión. |
-| **JavaScript (420–1144)** | Lógica completa: configuración, generación, render, intercambio de centros, fallback de imágenes, exportación PNG/ZIP. |
+| **JavaScript (420–1176)** | Lógica completa: configuración, generación, render, intercambio de centros, fallback de imágenes, exportación PNG/ZIP. |
 
 ### 5.2 Variables y Estado
 
@@ -179,7 +182,8 @@ const FACTOR_CSS_A_300DPI = 300 / 96;
 | `actualizarBotonDescarga()` | Habilita/deshabilita `#btn-descargar-imagenes` según haya cartillas y no haya exportación en curso. |
 | `cargarImagenParaExportar(ficha)` | Precarga una ficha para canvas con fallback webp → png → `null` (texto). Cachea la promesa por ID. |
 | `descargarCartillasPNG()` | Orquesta exportación 300 DPI, dibuja cada cartilla, convierte a PNG, arma el ZIP y dispara la descarga. |
-| `dibujarCartillaEnCanvas(...)` | Dibuja borde exterior, líneas internas, celdas, imágenes, comodín y marco del centro en el canvas. |
+| `trazarRectanguloRedondeado(...)` | Traza un rectángulo con esquinas redondeadas en canvas (usa `roundRect` o un respaldo con `arcTo`). |
+| `dibujarCartillaEnCanvas(...)` | Dibuja borde exterior redondeado, líneas internas, celdas, imágenes, comodín y marco del centro en el canvas. |
 | `dibujarComodinEnCanvas(...)` | Dibuja el comodín (fondo crema, estrella, texto) y su marco según color/centro. |
 | `dibujarMarcoInterior(...)` | Dibuja el marco interior del centro con el color elegido. |
 | `dibujarImagenContenida(...)` | Escala y centra la imagen de la ficha dentro de su celda (equivalente a `object-fit: contain`). |
@@ -210,7 +214,7 @@ const FACTOR_CSS_A_300DPI = 300 / 96;
 - **Interfaz limpia y directa.** Panel de control compacto, jerarquía clara.
 - **Estados visuales bien definidos.** Botón activo, centro con marco de color configurable, comodín diferenciado.
 - **Feedback útil al usuario.** Nota de impresión, indicadores 🔒 para centros usados, textos descriptivos en selects (`#id. Nombre`), progreso durante la exportación de imágenes.
-- **Diseño orientado a impresión.** PDF con medidas cm exactas y cartillas pegadas para cortar una sola vez.
+- **Diseño orientado a impresión.** PDF con medidas cm exactas, cartillas separadas 2 px (línea de corte) y esquinas redondeadas.
 - **Doble salida.** Impresión/PDF y descarga de PNG individuales en ZIP, sin dependencias externas.
 - **Responsive.** Usa flexbox + wrap, se adapta a viewport.
 - **Acciones claras.** Botones "Descargar PNG (ZIP)" e "Imprimir PDF".
@@ -311,7 +315,7 @@ chore: inicializar repositorio Lotería Campechana
 **El proyecto está en buen estado, funcional y bien pensado.** Destacan especialmente:
 
 - **Solución matemática sólida** para el reparto "Juego Completo" (partición perfecta 3×3, control inteligente de repeticiones y centros únicos en 5×5).
-- **UX orientada a uso real** (impresión profesional con cm exactos, cartillas pegadas para cortar una sola vez y exportación PNG/ZIP).
+- **UX orientada a uso real** (impresión profesional con cm exactos, cartillas separadas 2 px para cortar y exportación PNG/ZIP).
 - **Código vanilla robusto** con fallbacks bien resueltos y ZIP propio sin dependencias.
 - **Fácil de desplegar y extender.**
 
@@ -323,7 +327,7 @@ chore: inicializar repositorio Lotería Campechana
 
 | Archivo | Estado | Acción sugerida |
 |---|---|---|
-| `index.html` | Principal | Mantener. Versión actual: **1146 líneas** (CSS 7–365, HTML 367–418, JS 420–1144). Referencia histórica limpia: `c395fe1:index.html` (660 líneas). Candidato a dividir en `styles.css` + `app.js` si sigue creciendo. |
+| `index.html` | Principal | Mantener. Versión actual: **1178 líneas** (CSS 7–365, HTML 367–418, JS 420–1176). Referencia histórica limpia: `c395fe1:index.html` (660 líneas). Candidato a dividir en `styles.css` + `app.js` si sigue creciendo. |
 | `AGENTS.md` | Contexto operativo | Mantener y actualizar junto con cada cambio (ver §11). |
 | `fichas/*.webp` | OK | Versionar (assets). |
 | `fichaspng/*.png` | OK (respaldo) | Versionar o evaluar si necesario mantener ambos. |

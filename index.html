@@ -155,7 +155,7 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 20px;
+            gap: 2px;
             margin: 0 auto;
         }
 
@@ -345,12 +345,12 @@
             #contenedor-cartillas {
                 display: flex !important; flex-wrap: wrap !important;
                 justify-content: flex-start !important; align-items: flex-start !important;
-                align-content: flex-start !important; gap: 0 !important;
+                align-content: flex-start !important; gap: 2px !important;
                 width: 100% !important; padding: 0 !important; margin: 0 !important;
             }
             .cartilla-box {
                 box-shadow: none !important; border: 2px solid #000 !important;
-                border-radius: 0 !important;
+                border-radius: 6px !important;
                 width: var(--cartilla-lado) !important; height: var(--cartilla-lado) !important;
                 min-width: var(--cartilla-lado) !important; max-width: var(--cartilla-lado) !important;
                 box-sizing: border-box !important; page-break-inside: avoid !important;
@@ -370,7 +370,7 @@
     <p class="subtitulo">Generador de Cartillas (5x5 y 3x3) - Ajuste Estricto PDF</p>
 
     <div class="nota-impresion">
-        💡 <b>Tip para imprimir:</b> usa <b>Escala 100%</b>. En el PDF las cartillas salen <b>pegadas entre sí</b> (sin separación) y con margen de <b>0.5 cm</b>, para cortar una sola vez. También puedes descargarlas como <b>PNG (ZIP)</b> con el botón azul.
+        💡 <b>Tip para imprimir:</b> usa <b>Escala 100%</b>. En el PDF las cartillas salen con <b>2 px de separación</b>, <b>esquinas redondeadas</b> y margen de <b>0.5 cm</b>, para cortar por la línea. También puedes descargarlas como <b>PNG (ZIP)</b> con el botón azul.
     </div>
 
     <!-- PANEL DE CONTROL -->
@@ -899,6 +899,22 @@
             }
         }
 
+        // Traza un rectángulo con esquinas redondeadas (con respaldo si el navegador no tiene roundRect)
+        function trazarRectanguloRedondeado(ctx, x, y, ancho, alto, radio) {
+            const r = Math.max(0, Math.min(radio, ancho / 2, alto / 2));
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(x, y, ancho, alto, r);
+                return;
+            }
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + ancho, y, x + ancho, y + alto, r);
+            ctx.arcTo(x + ancho, y + alto, x, y + alto, r);
+            ctx.arcTo(x, y + alto, x, y, r);
+            ctx.arcTo(x, y, x + ancho, y, r);
+            ctx.closePath();
+        }
+
         function dibujarCartillaEnCanvas(ctx, cartilla, ladoPx, formato, centroIdx, colorCentro, imagenes) {
             const n = formato;
             const factor = FACTOR_CSS_A_300DPI;
@@ -906,10 +922,15 @@
             const linea = Math.max(1, Math.round(1 * factor));
             const padding = Math.max(1, Math.round(2 * factor));
             const marco = Math.max(2, Math.round(2 * factor));
+            const radio = Math.max(1, Math.round(6 * factor));
 
             ctx.save();
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, ladoPx, ladoPx);
+
+            // Recorta la cuadrícula para que las esquinas queden redondeadas
+            trazarRectanguloRedondeado(ctx, 0, 0, ladoPx, ladoPx, radio);
+            ctx.clip();
 
             const x0 = bordeExterior;
             const y0 = bordeExterior;
@@ -955,9 +976,20 @@
                 }
             }
 
+            ctx.restore(); // Quita el recorte antes de dibujar el borde exterior
+
+            ctx.save();
             ctx.strokeStyle = '#1a1a1a';
             ctx.lineWidth = bordeExterior;
-            ctx.strokeRect(bordeExterior / 2, bordeExterior / 2, ladoPx - bordeExterior, ladoPx - bordeExterior);
+            trazarRectanguloRedondeado(
+                ctx,
+                bordeExterior / 2,
+                bordeExterior / 2,
+                ladoPx - bordeExterior,
+                ladoPx - bordeExterior,
+                Math.max(0, radio - (bordeExterior / 2))
+            );
+            ctx.stroke();
             ctx.restore();
         }
 

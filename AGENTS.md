@@ -19,7 +19,8 @@ colaborador) que trabajen en este repositorio.
 | Deploy | GitHub Pages, serviendo `main` sin build step |
 | Versión actual de `index.html` | `main`, **1146 líneas** (CSS 7–365, HTML 367–418, JS 420–1144) |
 | Referencia histórica limpia | `c395fe1:index.html` (660 líneas) |
-| Estado del árbol | limpio, `main` == `origin/main` (actualizar tras el commit de este cambio) |
+| Último commit funcional | `7e6cdc6` — PNG/ZIP, PDF compacto y color del centro |
+| Estado del árbol | limpio, `main` == `origin/main` |
 
 **Protocolo al iniciar una sesión nueva:**
 
@@ -256,8 +257,12 @@ duplicado dos veces (líneas 1–1322 en lugar de 660).
 | `ed36201` | `chore: añadir .gitignore estándar` |
 | `c395fe1` | `Add files via upload` — versión web de `index.html` (660 líneas, la buena) |
 | `87b6d49` | `merge: resolver conflicto…` — **contiene `index.html` con marcadores** |
+| `8f3cd79` | `fix: eliminar marcadores…` — restaura `index.html` limpio |
+| `9b2b10c` | `docs: anadir seccion 0…` — estado del repo y protocolo de reanudación |
+| `7e6cdc6` | `feat: exportar cartillas PNG/ZIP…` — descarga PNG (ZIP), PDF compacto y color del centro |
 
-Referencias limpias de `index.html`: **`c395fe1:index.html`**.
+Referencias limpias de `index.html`: **`c395fe1:index.html`** (660 líneas) y
+**`7e6cdc6:index.html`** (1146 líneas, versión actual).
 
 ---
 
